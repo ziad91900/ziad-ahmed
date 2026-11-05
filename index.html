@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyMate AI | فهيم - رفيق المذاكرة الذكي</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts (Readex Pro) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Readex Pro', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+            },
+            dark: {
+              900: '#0f172a',
+              800: '#1e293b',
+              700: '#334155'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Flashcard 3D Flip Effects */
+    .perspective-1000 { perspective: 1000px; }
+    .transform-style-3d { transform-style: preserve-3d; }
+    .backface-hidden { backface-visibility: hidden; }
+    .rotate-y-180 { transform: rotateY(180deg); }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- ================= TOP NAVIGATION ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-xl font-bold bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">StudyMate AI</span>
+          <span class="text-xs text-slate-500 font-medium block">رفيق المذاكرة الجامعي</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openApiKeyModal()" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+          <span id="apiKeyStatus">إعداد API Key</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- LEFT PANEL: INPUT & CONFIGURATION (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="file-text" class="w-5 h-5 text-brand-600"></i>
+            المحتوى الدراسي
+          </h2>
+          <button onclick="loadSampleData()" class="text-xs text-brand-600 hover:underline font-medium">تجربة نص تجريبي</button>
+        </div>
+
+        <p class="text-xs text-slate-500 mb-3 leading-relaxed">
+          الصق محتوى المحاضرة، الملخص، أو الفصل الدراسي باللغة العربية أو الإنجليزية:
+        </p>
+
+        <textarea id="studyContent" rows="10" 
+          placeholder="ضع محتوى المحاضرة هنا... (مثال: شرح البروتوكولات، أجزاء الخلية، قوانين الاقتصاد الجزئي...)"
+          class="w-full p-3.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none transition bg-slate-50 focus:bg-white"></textarea>
+
+        <div class="mt-4">
+          <button id="processBtn" onclick="analyzeContent()" 
+            class="w-full py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-medium rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+            <span>تحليل المحتوى وبناء بيئة المذاكرة</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tips Box -->
+      <div class="bg-indigo-50/60 border border-indigo-100 p-4 rounded-xl text-indigo-900 text-xs leading-relaxed flex items-start gap-3">
+        <i data-lucide="info" class="w-5 h-5 text-indigo-600 shrink-0 mt-0.5"></i>
+        <span>
+          <strong>نصيحة للمشروع:</strong> يمكنك لاحقاً استخدام مكتبات مثل <code>pdf.js</code> لقراءة ملفات الـ PDF مباشرة وإرسال المستند كاملاً لواجهة برمجة تطبيقات Gemini.
+        </span>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: WORKSPACE & OUTPUT (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col">
+      <!-- Tabs Navigation -->
+      <div class="flex items-center gap-2 border-b border-slate-200 pb-3 mb-6 overflow-x-auto">
+        <button onclick="switchTab('summary')" id="tab-summary" class="tab-btn active px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 bg-brand-50 text-brand-600 transition">
+          <i data-lucide="align-right" class="w-4 h-4"></i> الملخص الذكي
+        </button>
+        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 text-slate-600 hover:bg-slate-100 transition">
+          <i data-lucide="layers" class="w-4 h-4"></i> بطاقات الاستذكار (<span id="cardsCount">0</span>)
+        </button>
+        <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 text-slate-600 hover:bg-slate-100 transition">
+          <i data-lucide="help-circle" class="w-4 h-4"></i> الاختبار التفاعلي (<span id="quizCount">0</span>)
+        </button>
+        <button onclick="switchTab('chat')" id="tab-chat" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 text-slate-600 hover:bg-slate-100 transition">
+          <i data-lucide="message-square" class="w-4 h-4"></i> المناقشة الفورية
+        </button>
+      </div>
+
+      <!-- Workspace Dynamic Container -->
+      <div class="flex-1 bg-white border border-slate-200 rounded-2xl p-6 min-h-[420px] shadow-sm relative">
+
+        <!-- Loading State -->
+        <div id="loader" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-20">
+          <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+          <p class="text-sm font-medium text-slate-700 mt-4 animate-pulse">جاري تشغيل محرك Gemini وبناء الاختبار والبطاقات...</p>
+        </div>
+
+        <!-- 1. SUMMARY TAB -->
+        <div id="content-summary" class="tab-content block space-y-4">
+          <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+            <i data-lucide="book-open" class="w-5 h-5 text-brand-600"></i>
+            ملخص الأفكار الرئيسية
+          </h3>
+          <div id="summaryOutput" class="text-sm leading-loose text-slate-600 whitespace-pre-line">
+            لم يتم توليد أي محتوى حتى الآن. أضف المحتوى في الحقل الجانبي واضغط زر "تحليل المحتوى".
+          </div>
+        </div>
+
+        <!-- 2. FLASHCARDS TAB -->
+        <div id="content-flashcards" class="tab-content hidden flex flex-col items-center">
+          <div class="w-full max-w-md perspective-1000 my-6">
+            <div id="flashcardBox" onclick="flipCard()" class="relative w-full h-64 rounded-2xl shadow-lg border border-slate-200 cursor-pointer transform-style-3d transition-transform duration-500 bg-gradient-to-br from-white to-slate-50 flex items-center justify-center p-8 text-center select-none">
+              <!-- Front -->
+              <div id="cardFront" class="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-6 text-slate-800 font-bold text-lg">
+                اضغط على الزر الجانبي لتوليد البطاقات أولاً
+              </div>
+              <!-- Back -->
+              <div id="cardBack" class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-6 bg-brand-600 text-white rounded-2xl font-medium text-sm leading-relaxed">
+                الإجابة / التفسير
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 mt-2">
+            <button onclick="prevCard()" class="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+            <span id="cardIndicator" class="text-xs font-semibold text-slate-500">0 / 0</span>
+            <button onclick="nextCard()" class="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. QUIZ TAB -->
+        <div id="content-quiz" class="tab-content hidden space-y-6">
+          <div id="quizContainer" class="space-y-6">
+            <p class="text-sm text-slate-500 text-center py-8">قم بتوليد المحتوى أولاً لإنشاء الاختبار الذكي.</p>
+          </div>
+          <button id="submitQuizBtn" onclick="evaluateQuiz()" class="hidden w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition shadow">
+            تسليم الإجابات واحتساب النتيجة
+          </button>
+          <div id="quizResult" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 text-center font-bold"></div>
+        </div>
+
+        <!-- 4. CHAT TAB -->
+        <div id="content-chat" class="tab-content hidden flex flex-col h-[400px]">
+          <div id="chatMessages" class="flex-1 overflow-y-auto space-y-3 p-2 text-sm">
+            <div class="bg-slate-100 text-slate-700 p-3 rounded-xl max-w-[85%] self-start">
+              مرحباً بك! يمكنك طرح أي سؤال غير واضح من المحتوى الذي قمت بإدخاله وسأشرحه لك فوراً.
+            </div>
+          </div>
+          <div class="pt-3 border-t border-slate-100 flex gap-2">
+            <input type="text" id="chatInput" placeholder="اسألني عن أي نقطة بالمحاضرة..." 
+              onkeydown="if(event.key === 'Enter') sendChatMessage()"
+              class="flex-1 text-sm border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+            <button onclick="sendChatMessage()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl transition">
+              <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: API KEY ================= -->
+  <div id="apiKeyModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-slate-800">إدخال Gemini API Key</h3>
+        <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p class="text-xs text-slate-500 leading-relaxed mb-4">
+        احصل على مفتاح مجاني فوراً من <a href="https://aistudio.google.com/" target="_blank" class="text-brand-600 underline font-semibold">Google AI Studio</a>. يُخزن المفتاح محلياً على متصفحك فقط.
+      </p>
+      <input type="password" id="apiKeyInput" placeholder="AIzaSy..." 
+        class="w-full p-3 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 mb-4 font-mono">
+      <div class="flex gap-2">
+        <button onclick="saveApiKey()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition">حفظ المفتاح</button>
+        <button onclick="closeApiKeyModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm transition">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    lucide.createIcons();
+
+    // App State
+    let flashcardsData = [];
+    let currentCardIndex = 0;
+    let isFlipped = false;
+    let quizData = [];
+    let userAnswers = {};
+
+    // Initial check for API Key
+    window.onload = () => {
+      const savedKey = localStorage.getItem('gemini_api_key');
+      if (savedKey) {
+        document.getElementById('apiKeyStatus').textContent = 'مفتاح API جاهز ✓';
+      }
+    };
+
+    function openApiKeyModal() {
+      document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || '';
+      document.getElementById('apiKeyModal').classList.remove('hidden');
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apiKeyModal').classList.add('hidden');
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!key) return alert('الرجاء إدخال المفتاح أولاً');
+      localStorage.setItem('gemini_api_key', key);
+      document.getElementById('apiKeyStatus').textContent = 'مفتاح API جاهز ✓';
+      closeApiKeyModal();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-50', 'text-brand-600');
+        btn.classList.add('text-slate-600');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+
+      document.getElementById(`tab-${tabId}`).classList.add('bg-brand-50', 'text-brand-600');
+      document.getElementById(`content-${tabId}`).classList.remove('hidden');
+    }
+
+    // Sample Data loader for quick presentation/testing
+    function loadSampleData() {
+      document.getElementById('studyContent').value = 
+`الحوسبة السحابية (Cloud Computing):
+هي توفير موارد تكنولوجيا المعلومات حسب الطلب عبر الإنترنت مع تسعير الدفع أولاً بأول. بدلاً من شراء الخوادم ومراكز البيانات الخاصة بك وامتلاكها والاحتفاظ بها، يمكنك الاستفادة من خدمات التكنولوجيا مثل إمكانات الحوسبة، والتخزين، وقواعد البيانات.
+
+النماذج الأساسية للحوسبة السحابية:
+1. البنية التحتية كخدمة (IaaS): توفر المكونات الأساسية لبناء بيئة السحابة مثل الأجهزة الافتراضية والشبكات (مثال: AWS EC2).
+2. النظام الأساسي كخدمة (PaaS): تزيل الحاجة إلى إدارة البنية التحتية الأساسية وتسمح بالتركيز على نشر التطبيقات وتطويرها (مثال: Heroku أو Google App Engine).
+3. البرمجيات كخدمة (SaaS): منتج كامل يتم تشغيله وإدارته بواسطة موفر الخدمة (مثال: Microsoft 365 أو Gmail).
+
+نماذج النشر (Deployment Models):
+- السحابة العامة (Public Cloud): مملوكة ومدارة بالكامل لمزود الخدمة وتشارك فيها الموارد.
+- السحابة الخاصة (Private Cloud): مخصصة حصرياً لمؤسسة واحدة وتوفر أعلى معدلات الأمان.
+- السحابة الهجينة (Hybrid Cloud): تدمج بين البنية التحتية المحلية والسحابة العامة لمرونة أعلى.`;
+    }
+
+    // ================= GEMINI API INTEGRATION =================
+    async function analyzeContent() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        openApiKeyModal();
+        return alert('يجب إضافة Google Gemini API Key أولاً للتشغيل');
+      }
+
+      const content = document.getElementById('studyContent').value.trim();
+      if (!content) return alert('برجاء كتابة أو لصق محتوى المحاضرة أولاً');
+
+      const loader = document.getElementById('loader');
+      loader.classList.remove('hidden');
+
+      // Structured Prompt forcing exact JSON format
+      const systemPrompt = `أنت بروفيسور ومساعد أكاديمي متقدم ومصمم للمناهج الدراسية الجامعية.
+قم بتحليل المحتوى الدراسي التالي، وأخرج النتيجة فقط بتنسيق JSON صالح (Strict JSON) وبنفس البنية الموضحة أدناه تماماً وبدون أي مقدمات أو علامات markdown غير صالحة.
+
+الهيكل المطلوب بدقة:
+{
+  "summary": "ملخص شامل ومركز لأهم نقاط المحتوى في شكل نقاط وأفكار محورية",
+  "flashcards": [
+    {"front": "المصطلح أو السؤال الأساسي", "back": "التعريف الدقيق أو الإجابة المختصرة"}
+  ],
+  "quiz": [
+    {
+      "question": "نص السؤال الدقيق من المحتوى؟",
+      "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
+      "correct": 0,
+      "explanation": "تفسير سبب صحة هذه الإجابة"
+    }
+  ]
+}
+
+المحتوى المراد معالجته:
+${content}`;
+
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemPrompt }] }],
+            generationConfig: {
+              response_mime_type: "application/json",
+              temperature: 0.3
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const rawJsonText = data.candidates[0].content.parts[0].text;
+        const parsedData = JSON.parse(rawJsonText);
+
+        renderGeneratedData(parsedData);
+
+      } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء الاتصال بالذكاء الاصطناعي: ' + err.message);
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    // Render Data into UI components
+    function renderGeneratedData(data) {
+      // 1. Render Summary
+      document.getElementById('summaryOutput').textContent = data.summary;
+
+      // 2. Render Flashcards
+      flashcardsData = data.flashcards || [];
+      currentCardIndex = 0;
+      document.getElementById('cardsCount').textContent = flashcardsData.length;
+      updateCardUI();
+
+      // 3. Render Quiz
+      quizData = data.quiz || [];
+      userAnswers = {};
+      document.getElementById('quizCount').textContent = quizData.length;
+      renderQuizUI();
+
+      // Open summary by default
+      switchTab('summary');
+      lucide.createIcons();
+    }
+
+    // ================= FLASHCARDS ENGINE =================
+    function updateCardUI() {
+      if (flashcardsData.length === 0) return;
+      isFlipped = false;
+      const box = document.getElementById('flashcardBox');
+      box.classList.remove('rotate-y-180');
+
+      document.getElementById('cardFront').textContent = flashcardsData[currentCardIndex].front;
+      document.getElementById('cardBack').textContent = flashcardsData[currentCardIndex].back;
+      document.getElementById('cardIndicator').textContent = `${currentCardIndex + 1} / ${flashcardsData.length}`;
+    }
+
+    function flipCard() {
+      if (flashcardsData.length === 0) return;
+      isFlipped = !isFlipped;
+      document.getElementById('flashcardBox').classList.toggle('rotate-y-180', isFlipped);
+    }
+
+    function nextCard() {
+      if (currentCardIndex < flashcardsData.length - 1) {
+        currentCardIndex++;
+        updateCardUI();
+      }
+    }
+
+    function prevCard() {
+      if (currentCardIndex > 0) {
+        currentCardIndex--;
+        updateCardUI();
+      }
+    }
+
+    // ================= QUIZ ENGINE =================
+    function renderQuizUI() {
+      const container = document.getElementById('quizContainer');
+      const submitBtn = document.getElementById('submitQuizBtn');
+      const resultBox = document.getElementById('quizResult');
+
+      resultBox.classList.add('hidden');
+      if (quizData.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-500 text-center py-8">لا توجد أسئلة متوفرة.</p>';
+        submitBtn.classList.add('hidden');
+        return;
+      }
+
+      container.innerHTML = quizData.map((q, qIdx) => `
+        <div class="p-5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+          <p class="font-semibold text-slate-800 text-sm">${qIdx + 1}. ${q.question}</p>
+          <div class="grid grid-cols-1 gap-2 pt-1">
+            ${q.options.map((opt, optIdx) => `
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-xs font-medium transition">
+                <input type="radio" name="q_${qIdx}" value="${optIdx}" onchange="selectAnswer(${qIdx}, ${optIdx})" class="text-brand-600 focus:ring-brand-500">
+                <span>${opt}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div id="quiz-feedback-${qIdx}" class="hidden text-xs p-3 rounded-lg mt-2"></div>
+        </div>
+      `).join('');
+
+      submitBtn.classList.remove('hidden');
+    }
+
+    function selectAnswer(questionIdx, optionIdx) {
+      userAnswers[questionIdx] = optionIdx;
+    }
+
+    function evaluateQuiz() {
+      let score = 0;
+      quizData.forEach((q, idx) => {
+        const feedbackEl = document.getElementById(`quiz-feedback-${idx}`);
+        feedbackEl.classList.remove('hidden');
+
+        if (userAnswers[idx] === q.correct) {
+          score++;
+          feedbackEl.className = 'text-xs p-3 rounded-lg mt-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
+          feedbackEl.innerHTML = `✓ إجابة صحيحة! ${q.explanation}`;
+        } else {
+          feedbackEl.className = 'text-xs p-3 rounded-lg mt-2 bg-rose-50 text-rose-800 border border-rose-200';
+          feedbackEl.innerHTML = `✗ إجابة غير صحيحة. الإجابة الصحيحة هي: "<strong>${q.options[q.correct]}</strong>". <br>${q.explanation}`;
+        }
+      });
+
+      const resultBox = document.getElementById('quizResult');
+      resultBox.classList.remove('hidden');
+      resultBox.innerHTML = `نتيجتك: <span class="text-brand-600 text-lg">${score}</span> من <span class="text-lg">${quizData.length}</span> (${Math.round((score/quizData.length)*100)}%)`;
+      resultBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ================= REALTIME CHAT ENGINE =================
+    async function sendChatMessage() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const input = document.getElementById('chatInput');
+      const query = input.value.trim();
+      const content = document.getElementById('studyContent').value.trim();
+
+      if (!query) return;
+      if (!apiKey) return openApiKeyModal();
+
+      const chatContainer = document.getElementById('chatMessages');
+
+      // Append User Message
+      chatContainer.innerHTML += `
+        <div class="bg-brand-600 text-white p-3 rounded-xl max-w-[85%] self-end mr-auto text-xs leading-relaxed">
+          ${query}
+        </div>
+      `;
+      input.value = '';
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      // Placeholder bot bubble
+      const botMsgId = 'bot_' + Date.now();
+      chatContainer.innerHTML += `
+        <div id="${botMsgId}" class="bg-slate-100 text-slate-700 p-3 rounded-xl max-w-[85%] self-start text-xs leading-relaxed animate-pulse">
+          جاري التفكير...
+        </div>
+      `;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `أنت معيد ومساعد تدريس جامعي ذكي. أجب على استفسار الطالب باختصار ووضوح بالاعتماد حصراً على المحتوى الدراسي المرفق أدناه.
+                
+المحتوى الدراسي:
+${content || "لا يوجد محتوى مدرج حالياً"}
+
+سؤال الطالب:
+${query}`
+              }]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        const reply = data.candidates[0].content.parts[0].text;
+        const botEl = document.getElementById(botMsgId);
+        botEl.classList.remove('animate-pulse');
+        botEl.textContent = reply;
+
+      } catch (err) {
+        document.getElementById(botMsgId).textContent = 'تعذر الرد، تأكد من مفتاح الـ API والاتصال بالإنترنت.';
+      }
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  </script>
+</body>
+</html>
